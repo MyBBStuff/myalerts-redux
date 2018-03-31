@@ -102,6 +102,7 @@ final class MyAlerts
 
         $plugins->add_hook('reputation_do_add_process', ['MyAlerts', 'reputationAlert']);
         $plugins->add_hook('datahandler_pm_insert_end', ['MyAlerts', 'pmAlert']);
+        $plugins->add_hook('private_read_end', ['MyAlerts', 'readPmAlert']);
         $plugins->add_hook('usercp_do_editlists_end', ['MyAlerts', 'buddyListAlert']);
         $plugins->add_hook('usercp_cancelrequest_start', ['MyAlerts', 'deleteBuddyListAlert']);
     }
@@ -140,6 +141,22 @@ final class MyAlerts
 
             $index++;
         }
+    }
+
+    public static function readPmAlert()
+    {
+        global $mybb, $db;
+
+        $id = $mybb->get_input('pmid', MyBB::INPUT_INT);
+
+        $prefix = TABLE_PREFIX;
+        $uid = (int) $mybb->user['uid'];
+
+        $query = <<<SQL
+UPDATE {$prefix}alerts SET read_at = CURRENT_TIMESTAMP() WHERE object_type = 'pm' AND object_id = {$id} AND uid = {$uid} AND read_at IS NULL;
+SQL;
+
+        $db->write_query($query);
     }
 
     public static function buddyListAlert()
@@ -235,7 +252,7 @@ final class MyAlerts
 
         $request['touid'] = (int) $request['touid'];
         $request['uid'] = (int) $request['uid'];
-        
+
         $db->delete_query('alerts',
             "alert_type_id = {$buddyAlertTypeId} AND uid = {$request['touid']} AND from_uid = {$request['uid']} AND read_at IS NULL"
         );
