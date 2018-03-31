@@ -100,17 +100,13 @@ final class MyAlerts
     {
         global $plugins;
 
-        $plugins->add_hook('datahandler_user_insert', ['MyAlerts', 'dataHandlerUserInsert']);
-        $plugins->add_hook('reputation_do_add_process', ['MyAlerts', 'reputationDoAddProcess']);
-        $plugins->add_hook('datahandler_pm_insert_end', ['MyAlerts', 'dataHandlerPmInsertEnd']);
+        $plugins->add_hook('reputation_do_add_process', ['MyAlerts', 'reputationAlert']);
+        $plugins->add_hook('datahandler_pm_insert_end', ['MyAlerts', 'pmAlert']);
+        $plugins->add_hook('usercp_do_editlists_end', ['MyAlerts', 'buddyListAlert']);
+        $plugins->add_hook('usercp_cancelrequest_start', ['MyAlerts', 'deleteBuddyListAlert']);
     }
 
-    public static function dataHandlerUserInsert(UserDataHandler &$dataHandler)
-    {
-        $dataHandler->user_insert_data['myalerts_disabled_alert_types'] = null;
-    }
-
-    public static function reputationDoAddProcess()
+    public static function reputationAlert()
     {
         global $mybb, $reputation;
 
@@ -121,7 +117,7 @@ final class MyAlerts
         static::addAlert($reputation['uid'], 'rep', $mybb->user['uid'], 'rep', 0);
     }
 
-    public static function dataHandlerPmInsertEnd(PMDataHandler &$dataHandler)
+    public static function pmAlert(PMDataHandler &$dataHandler)
     {
         if (!static::isAlertTypeEnabled('pm')) {
             return;
@@ -144,5 +140,104 @@ final class MyAlerts
 
             $index++;
         }
+    }
+
+    public static function buddyListAlert()
+    {
+        if (!static::isAlertTypeEnabled('buddylist')) {
+            return;
+        }
+
+        global $mybb, $db;
+
+        if ($mybb->get_input('manage') == 'ignored') {
+            // we only care about buddy list modifications, not ignore list modifications
+            return;
+        }
+
+        $existingUsers = explode(',', $mybb->user['buddylist']);
+        $existingUsers = array_map('intval', $existingUsers);
+
+        if ($mybb->get_input('delete', MyBB::INPUT_INT)) {
+            // delete any existing unread alerts for adding this user to the buddylist
+            $toDelete = $mybb->get_input('delete', MyBB::INPUT_INT);
+
+            if (!in_array($toDelete, $existingUsers)) {
+                return;
+            }
+
+            $buddyAlertTypeId = static::getAlertTypeIdFromCode('buddylist');
+
+            if ($buddyAlertTypeId === -1) {
+                return;
+            }
+
+            $fromUid = (int) $mybb->user['uid'];
+
+            $db->delete_query('alerts',
+                "alert_type_id = {$buddyAlertTypeId} AND uid = {$toDelete} AND from_uid = {$fromUid} AND read_at IS NULL"
+            );
+        } else {
+            $users = explode(',', $mybb->get_input('add_username'));
+            $users = array_map('trim', $users);
+            $users = array_unique($users);
+
+            foreach ($users as $key => $username) {
+                if (my_strtoupper($mybb->user['username']) == my_strtoupper($username)) {
+                    // was trying to add self
+                    unset($users[$key]);
+                } else {
+                    $users[$key] = $db->escape_string($username);
+                }
+            }
+
+            switch ($db->type) {
+                case 'mysql':
+                case 'mysqli':
+                    $field = 'username';
+                    break;
+                default:
+                    $field = 'LOWER(username)';
+                    break;
+            }
+
+            $query = $db->simple_select('users', 'uid', "{$field} IN ('".my_strtolower(implode("','", $users))."')");
+            while ($row = $db->fetch_array($query)) {
+                $uid = (int) $row['uid'];
+
+                if (!in_array($uid, $existingUsers)) {
+                    static::addAlert($row['uid'], 'buddylist', $mybb->user['uid'], 'buddy', $row['uid']);
+                }
+            }
+        }
+    }
+
+    public static function deleteBuddyListAlert()
+    {
+        if (!static::isAlertTypeEnabled('buddylist')) {
+            return;
+        }
+
+        global $mybb, $db;
+
+        $query = $db->simple_select('buddyrequests', '*', 'id='.$mybb->get_input('id', MyBB::INPUT_INT).' AND uid='.(int)$mybb->user['uid']);
+        $request = $db->fetch_array($query);
+
+        if (empty($request)) {
+            return;
+        }
+
+        $buddyAlertTypeId = static::getAlertTypeIdFromCode('buddylist');
+
+        if ($buddyAlertTypeId === -1) {
+            return;
+        }
+
+        $request['touid'] = (int) $request['touid'];
+        $request['uid'] = (int) $request['uid'];
+        
+        $db->delete_query('alerts',
+            "alert_type_id = {$buddyAlertTypeId} AND uid = {$request['touid']} AND from_uid = {$request['uid']} AND read_at IS NULL"
+        );
     }
 }
