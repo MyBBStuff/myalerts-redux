@@ -101,6 +101,7 @@ final class MyAlerts
         global $plugins;
 
         $plugins->add_hook('reputation_do_add_process', ['MyAlerts', 'reputationAlert']);
+        $plugins->add_hook('reputation_end', ['MyAlerts', 'readReputationAlert']);
         $plugins->add_hook('datahandler_pm_insert_end', ['MyAlerts', 'pmAlert']);
         $plugins->add_hook('private_read_end', ['MyAlerts', 'readPmAlert']);
         $plugins->add_hook('usercp_do_editlists_end', ['MyAlerts', 'buddyListAlert']);
@@ -116,6 +117,25 @@ final class MyAlerts
         }
 
         static::addAlert($reputation['uid'], 'rep', $mybb->user['uid'], 'rep', 0);
+    }
+
+    public static function readReputationAlert()
+    {
+        global $mybb, $db;
+
+        $uid = $mybb->get_input('uid', MyBB::INPUT_INT);
+
+        if ($uid != $mybb->user['uid']) {
+            return;
+        }
+
+        $prefix = TABLE_PREFIX;
+
+        $query = <<<SQL
+UPDATE {$prefix}alerts SET read_at = CURRENT_TIMESTAMP() WHERE object_type = 'rep' AND uid = {$uid} AND read_at IS NULL;
+SQL;
+
+        $db->write_query($query);
     }
 
     public static function pmAlert(PMDataHandler &$dataHandler)

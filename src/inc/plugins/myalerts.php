@@ -27,14 +27,14 @@ function myalerts_info()
     $lang->load('myalerts');
 
     return [
-        'name'			=> $lang->myalerts_name,
-        'description'	=> $lang->myalerts_description,
-        'website'		=> 'https://www.mybbstuff.com',
-        'author'		=> 'Euan T',
-        'authorsite'	=> '',
-        'version'		=> '3.0',
-        'compatibility'	=> '18*',
-        'codename'		=> 'mybbstuff_myalerts'
+        'name' => $lang->myalerts_name,
+        'description' => $lang->myalerts_description,
+        'website' => 'https://www.mybbstuff.com',
+        'author' => 'Euan T',
+        'authorsite' => '',
+        'version' => '3.0.0',
+        'compatibility' => '18*',
+        'codename' => 'mybbstuff_myalerts',
     ];
 }
 
