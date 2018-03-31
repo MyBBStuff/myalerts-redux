@@ -67,7 +67,7 @@ final class MyAlerts
     {
         global $plugins;
 
-        $plugins->add_hook('admin_user_users_delete_commit', ['MyAlerts', 'usersDeleteCommit'], 10, __FILE__);
+        $plugins->add_hook('admin_user_users_delete_commit', ['MyAlerts', 'usersDeleteCommit']);
     }
 
     /**
@@ -129,7 +129,7 @@ CREATE TABLE {$prefix}alert_types (
   id SERIAL,
   code VARCHAR(50) NOT NULL,
   enabled TINYINT(1) NOT NULL DEFAULT '1',
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
   CONSTRAINT code_unique UNIQUE(code)
 );
 SQL;
@@ -165,7 +165,7 @@ CREATE TABLE {$prefix}alerts (
   forced BOOLEAN NOT NULL DEFAULT FALSE,
   extra_details JSONB NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  read_at TIMESTAMP DEFAULT NULL,
+  read_at TIMESTAMP NULL DEFAULT NULL,
   PRIMARY KEY (id)
 );
 SQL;
@@ -182,7 +182,7 @@ CREATE TABLE {$prefix}alerts (
   forced BOOLEAN NOT NULL CHECK (forced IN (0,1)),
   extra_details TEXT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  read_at TIMESTAMP DEFAULT NULL,
+  read_at TIMESTAMP NULL DEFAULT NULL,
   PRIMARY KEY (id)
 );
 SQL;
@@ -199,7 +199,7 @@ CREATE TABLE {$prefix}alerts (
   forced TINYINT(1) NOT NULL DEFAULT '0',
   extra_details TEXT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  read_at TIMESTAMP DEFAULT NULL,
+  read_at TIMESTAMP NULL DEFAULT NULL,
   PRIMARY KEY (id)
 );
 SQL;

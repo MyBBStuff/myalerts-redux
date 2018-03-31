@@ -12,7 +12,7 @@ if (defined('THIS_SCRIPT')) {
     }
 }
 
-if (defined('IN_ACP')) {
+if (defined('IN_ADMINCP') && IN_ADMINCP) {
     require_once __DIR__ . '/myalerts/src/admin.php';
 } else {
     require_once __DIR__ . '/myalerts/src/frontend.php';
