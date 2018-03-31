@@ -106,6 +106,7 @@ final class MyAlerts
         $plugins->add_hook('private_read_end', ['MyAlerts', 'readPmAlert']);
         $plugins->add_hook('usercp_do_editlists_end', ['MyAlerts', 'buddyListAlert']);
         $plugins->add_hook('usercp_cancelrequest_start', ['MyAlerts', 'deleteBuddyListAlert']);
+        $plugins->add_hook('usercp_editlists_end', ['MyAlerts', 'readBuddyListAlerts']);
     }
 
     public static function reputationAlert()
@@ -243,7 +244,7 @@ SQL;
                 $uid = (int) $row['uid'];
 
                 if (!in_array($uid, $existingUsers)) {
-                    static::addAlert($row['uid'], 'buddylist', $mybb->user['uid'], 'buddy', $row['uid']);
+                    static::addAlert($row['uid'], 'buddylist', $mybb->user['uid'], 'buddy', 0);
                 }
             }
         }
@@ -276,5 +277,19 @@ SQL;
         $db->delete_query('alerts',
             "alert_type_id = {$buddyAlertTypeId} AND uid = {$request['touid']} AND from_uid = {$request['uid']} AND read_at IS NULL"
         );
+    }
+
+    public static function readBuddyListAlerts()
+    {
+        global $mybb, $db;
+
+        $prefix = TABLE_PREFIX;
+        $uid = (int) $mybb->user['uid'];
+
+        $query = <<<SQL
+UPDATE {$prefix}alerts SET read_at = CURRENT_TIMESTAMP() WHERE object_type = 'buddy' AND uid = {$uid} AND read_at IS NULL;
+SQL;
+
+        $db->write_query($query);
     }
 }
